@@ -1,1 +1,0 @@
-reco <- read.csv('recommendation.csv',stringsAsFactors = F,header=T)
