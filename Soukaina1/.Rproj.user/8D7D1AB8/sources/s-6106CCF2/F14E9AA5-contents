@@ -1,0 +1,252 @@
+# load the required packages
+
+library(shiny)
+require(shinydashboard)
+library(ggplot2)
+library(dplyr)
+library(ECharts2Shiny)
+library(sqldf)
+
+
+##databases
+reco <- read.csv('recommendation.csv',stringsAsFactors = F,header=T)
+region <- read.csv('c19.csv',stringsAsFactors = F,header=T)
+##DB end
+
+## Data manipulation
+deaths <- "select reco.Deaths from reco where reco.Date = '10/06/2020'"
+Confirmed <- "select reco.Confirmed from reco where reco.Date = '10/06/2020'"
+Recovered <- "select reco.Recovered from reco where reco.Date = '10/06/2020'"
+Excluded <- "select reco.Excluded from reco where reco.Date = '10/06/2020'"
+d <- "select reco.Deaths from reco "
+C <- "select reco.Confirmed from reco "
+R <- "select reco.Recovered from reco"
+E <- "select reco.Excluded from reco"
+D <-"select reco.Date from reco"
+
+regions<-"select 
+max(reco.'Beni.Mellal.Khenifra') as 'Beni.Mellal.Khenifra',
+max(reco.'Casablanca.Settat') as 'Casablanca.Settat' ,
+max(reco.'Draa.Tafilalet') as 'Draa.Tafilalet',
+max(reco.'Dakhla.Oued.Ed.Dahab') as 'Dakhla.Oued.Ed.Dahab',
+max(reco.'Fes.Meknes') as 'Fes.Meknes',
+max(reco.'Guelmim.Oued.Noun') as 'Guelmim.Oued.Noun',
+max(reco.'Laayoune.Sakia.El.Hamra') as 'Laayoune.Sakia.El.Hamra',
+max(reco.'Marrakesh.Safi') as 'Laayoune.Sakia.El.Hamra',
+max(reco.'Oriental') as 'Oriental',
+max(reco.'Rabat.Sale.Kenitra') as 'Rabat.Sale.Kenitra',
+max(reco.'Souss.Massa') as 'Souss.Massa',
+max(reco.'Tanger.Tetouan.Al.Hoceima') as 'Tanger.Tetouan.Al.Hoceima' 
+from reco"
+  
+##DBM end
+
+
+#head(recommendation)
+#Dashboard header carrying the title of the dashboard
+header <- dashboardHeader(title = "COVID-19")  
+
+#Sidebar content of the dashboard
+sidebar <- dashboardSidebar(
+  sidebarMenu(
+    menuItem("home", tabName = "home", icon = icon("home")),
+    menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"))
+  )
+)
+
+###top news aff
+frow4 <- fluidRow(
+
+  img(src = "coronavirus1.jpg", width = "100%"),
+  titlePanel(""),
+  
+  img(src = "covid.jpg", align = "right",width = "30%"),
+ h1("COVID-19 Data Visualization Platform",aligh="center"),
+
+  h4("    A new invisible enemy, only 30kb in size, has emerged and is on a killing spree around the world: 2019-nCoV, the Novel Coronavirus!
+
+In right we can see some precautionary measures to prevent spread of Coronavirus.
+
+
+This monitor was developed to make the data and key visualizations of COVID-19 trends available to everyone and also provide a platform to conduct a sentiment analysis of social media posts using Natural Language Processing (NLP).   ")
+ )
+
+frow1 <- fluidRow(
+  valueBoxOutput("value1")
+  ,valueBoxOutput("value2")
+  ,valueBoxOutput("value3"),
+  valueBoxOutput("value4")
+)
+
+##basic charts 
+frow2 <- fluidRow(
+
+)
+
+##region charts
+frow3 <- fluidRow(
+  titlePanel("Développement du virus corona au Maroc"),
+  shinyUI(fluidPage(
+    # We HAVE TO to load the ECharts javascript library in advance
+    loadEChartsLibrary(),
+    loadEChartsTheme('shine'),
+    loadEChartsTheme('vintage'),
+    
+    fluidRow(
+      
+   
+      column(6,
+             tags$div(id="test_1", style="width:100%;height:300px;"),  # Specify the div for the chart. Can also be considered as a space holder
+             deliverChart(div_id = "test_1")  # Deliver the plotting
+      ),
+      column(6,
+             tags$div(id="test_4", style="width:100%;height:300px;"),
+             deliverChart(div_id = "test_4")
+      )
+    ),
+    fluidRow(
+      titlePanel("Courbe cumulative de l'evolution de covid-19 au maroc"),
+      column(6,
+             tags$div(id="test_2", style="width:200%;height:400px;"),  # Specify the div for the chart. Can also be considered as a space holder
+             deliverChart(div_id = "test_2")  # Deliver the plotting
+      )
+    ),
+    
+    fluidRow(
+      titlePanel("Comparaison de l'évolution de l'épidémie au Maroc par regions"),
+      column(6,
+             tags$div(id="test_5", style="width:200%;height:450px;"),  # Specify the div for the chart. Can also be considered as a space holder
+             deliverChart(div_id = "test_5")  # Deliver the plotting
+      )
+     
+    ),
+    fluidRow(
+      titlePanel(""),
+      column(6,
+             tags$div(id="test_6", style="width:200%;height:400px;"),
+             deliverChart(div_id = "test_6")
+      )
+
+    ),
+    
+  )
+  )
+)
+
+
+# combine the two fluid rows to make the body
+body <- dashboardBody(tabItems(tabItem(tabName = "home",
+                                                frow4),
+                               (tabItem(tabName = "dashboard",
+                                        frow1, frow2,frow3 ))
+                               
+                              
+))
+
+#completing the ui part with dashboardPage
+ui <- dashboardPage(title = 'Covid-19', header, sidebar, body, skin='red')
+
+#### dataframe for charts 
+dat_1 <- c(rep("Confirmed", sqldf(Confirmed)),
+           rep("Recovered", sqldf(Recovered)),
+           rep("Deaths", sqldf(deaths)),
+           rep("Excluded", sqldf(Excluded)))
+
+
+dat_2 <- data.frame(c(sqldf(Confirmed)),
+                    c(sqldf(Recovered)),
+                    c(sqldf(deaths)),
+                    c(sqldf(Excluded)))
+row.names(dat_2) <- c("Diagramme à bande des differents cas")
+
+
+dat_3<-data.frame(sqldf(d),sqldf(C),sqldf(R),sqldf(E))
+      row.names(dat_3)<-reco$Date
+
+dat_4 <-c(rep(region$Region,region$Confirmed))
+
+dat_5 <-data.frame(c(sqldf(regions)))
+row.names(dat_5) <- c("Diagramme à bande des differents cas par regions ")
+
+
+
+##  end dataframe for charts 
+
+# create the server functions for the dashboard  
+server <- function(input, output) { 
+  
+  
+  #some data manipulation 
+ ## total.Confirmed <- sum(reco$Confirmed)
+  ##total.Deaths <- sum(reco$Deaths)
+ ## total.Recovered <- sum(reco$Recovered)
+##  total.Excluded <- sum(reco$Excluded)
+  
+  ################top infos 
+  output$value2 <- renderValueBox({
+    
+    valueBox(
+      formatC(sqldf(deaths), format="d", big.mark=',')
+      ,'Total Deaths'
+      ,icon = icon("remove",lib='glyphicon')
+      ,color = 'teal')
+    
+  })
+  
+  output$value1 <- renderValueBox({
+    
+    valueBox(
+      formatC(sqldf(Recovered), format="d", big.mark=',')
+      ,'Total recovered'
+      ,icon = icon("heart",lib='glyphicon')
+      ,color = "teal")
+    
+  })
+  
+
+  output$value3 <- renderValueBox({
+    
+    valueBox(
+      formatC(sqldf(Confirmed), format="d", big.mark=',')
+      ,'Total confirmed'
+      ,icon = icon("asterisk",lib='glyphicon')
+      ,color = "teal")
+    
+  })
+  output$value4 <- renderValueBox({
+    
+    valueBox(
+      formatC(sqldf(Excluded), format="d", big.mark=',')
+      ,'Total Excluded'
+      ,icon = icon("user",lib='glyphicon')
+      ,color = "teal")
+    
+  })
+  ############################# end top infos
+  
+
+  
+  #####charts 
+  renderPieChart(div_id = "test_1",data = dat_1,theme = "vintage", radius = "70%",center_x = "50%", center_y = "50%")
+  
+  renderLineChart(div_id = "test_2", theme = "vintage",data = dat_3)
+
+  renderBarChart(div_id = "test_4", theme = "vintage",direction = "vertical", grid_left = "10%",data = dat_2)
+  
+  renderPieChart(div_id = "test_5",data = dat_4 , theme = "vintage", radius = "70%",center_x = "50%", center_y = "50%")
+
+    renderBarChart(div_id = "test_6", theme = "vintage",direction = "vertical", grid_left = "10%",data = dat_5)
+  
+ 
+  
+######charts 
+
+
+
+  
+  
+ 
+     
+}
+
+shinyApp(ui, server)
